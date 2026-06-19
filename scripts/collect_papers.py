@@ -1599,7 +1599,7 @@ def call_openai_compatible(prompt: str) -> dict[str, Any]:
     using_deepseek = bool(os.getenv("DEEPSEEK_API_KEY") and not os.getenv("LLM_API_KEY") and not os.getenv("OPENAI_API_KEY"))
     if not base_url:
         base_url = "https://api.deepseek.com/v1" if using_deepseek else "https://api.openai.com/v1"
-    model = os.getenv("LLM_MODEL", "deepseek-chat" if os.getenv("DEEPSEEK_API_KEY") else "gpt-4o-mini")
+    model = os.getenv("LLM_MODEL", "deepseek-v4-flash" if os.getenv("DEEPSEEK_API_KEY") else "gpt-4o-mini")
     endpoint = base_url.rstrip("/") + "/chat/completions"
     payload = {
         "model": model,
