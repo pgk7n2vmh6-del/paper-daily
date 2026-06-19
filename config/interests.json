@@ -138,7 +138,18 @@
     "wastewater",
     "carbon emission",
     "microplastic",
-    "remote sensing"
+    "remote sensing",
+    "vision-language-action",
+    "VLA model",
+    "robotics",
+    "robotic",
+    "quantization",
+    "computer vision",
+    "cybersecurity",
+    "access control",
+    "lane-level map",
+    "map generation",
+    "autonomous driving"
   ],
   "conference_sources": {
     "enabled": false

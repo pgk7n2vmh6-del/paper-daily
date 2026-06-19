@@ -533,6 +533,21 @@ class RetentionTest(unittest.TestCase):
 
         self.assertFalse(passes_relevance_filter(unrelated_paper, relevance_filter)[0])
 
+    def test_hyphenated_technical_language_compound_is_not_language_studies(self) -> None:
+        relevance_filter = parse_relevance_filter(
+            {
+                "include_terms": ["language", "translation"],
+                "exclude_terms": ["vision-language-action", "quantization", "robotics"],
+            }
+        )
+        vla_paper = {
+            "title": "Robust Quantization for Vision-Language-Action Models",
+            "summary": "This work compresses robotics policy backbones for manipulation.",
+            "categories": ["cs.CV", "cs.LG"],
+        }
+
+        self.assertFalse(passes_relevance_filter(vla_paper, relevance_filter)[0])
+
     def test_llm_summary_skips_conference_and_title_only_by_default(self) -> None:
         self.assertFalse(should_summarize_paper_with_llm({"source_type": "conference", "summary": "DBLP 题录。"}))
         self.assertFalse(should_summarize_paper_with_llm({"source": "Crossref", "summary": ""}))

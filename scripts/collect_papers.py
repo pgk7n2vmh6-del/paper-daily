@@ -1532,7 +1532,7 @@ def term_matches(text: str, term: str) -> bool:
         return False
     if re.search(r"[\u4e00-\u9fff]", normalized):
         return normalized in text
-    return re.search(rf"(?<![a-z0-9]){re.escape(normalized)}(?![a-z0-9])", text) is not None
+    return re.search(rf"(?<![a-z0-9-]){re.escape(normalized)}(?![a-z0-9-])", text) is not None
 
 
 def matching_terms(text: str, terms: list[str]) -> list[str]:

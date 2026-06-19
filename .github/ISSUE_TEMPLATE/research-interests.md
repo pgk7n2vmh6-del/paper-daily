@@ -103,7 +103,14 @@ assignees: ''
     "clinical",
     "medicine",
     "engineering",
-    "environmental science"
+    "environmental science",
+    "vision-language-action",
+    "robotics",
+    "quantization",
+    "computer vision",
+    "cybersecurity",
+    "access control",
+    "map generation"
   ],
   "conference_sources": {
     "enabled": false
