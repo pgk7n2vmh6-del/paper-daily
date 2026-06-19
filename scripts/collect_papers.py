@@ -1596,14 +1596,14 @@ def llm_headers(api_key: str) -> dict[str, str]:
 def call_openai_compatible(prompt: str) -> dict[str, Any]:
     api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("DEEPSEEK_API_KEY") or ""
     base_url = os.getenv("LLM_BASE_URL", "")
+    using_deepseek = bool(os.getenv("DEEPSEEK_API_KEY") and not os.getenv("LLM_API_KEY") and not os.getenv("OPENAI_API_KEY"))
     if not base_url:
-        base_url = "https://api.deepseek.com/v1" if os.getenv("DEEPSEEK_API_KEY") else "https://api.openai.com/v1"
+        base_url = "https://api.deepseek.com/v1" if using_deepseek else "https://api.openai.com/v1"
     model = os.getenv("LLM_MODEL", "deepseek-chat" if os.getenv("DEEPSEEK_API_KEY") else "gpt-4o-mini")
     endpoint = base_url.rstrip("/") + "/chat/completions"
     payload = {
         "model": model,
         "temperature": 0.2,
-        "response_format": {"type": "json_object"},
         "messages": [
             {
                 "role": "system",
@@ -1612,6 +1612,8 @@ def call_openai_compatible(prompt: str) -> dict[str, Any]:
             {"role": "user", "content": prompt},
         ],
     }
+    if not using_deepseek:
+        payload["response_format"] = {"type": "json_object"}
     req = urllib.request.Request(
         endpoint,
         data=json.dumps(payload).encode("utf-8"),
