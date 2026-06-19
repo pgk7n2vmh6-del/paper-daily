@@ -6,122 +6,212 @@ labels: config
 assignees: ''
 ---
 
+把下面 JSON 里的 `include_terms`、`exclude_terms`、`journals` 和 `topics[*].keywords` 当成可编辑清单即可。
+
 ```json
 {
   "sources": [
-    { "type": "arxiv", "name": "arXiv" },
-    { "type": "openalex", "name": "OpenAlex" },
-    { "type": "crossref", "name": "Crossref" }
+    {
+      "type": "openalex",
+      "name": "OpenAlex Translation Journals",
+      "journals": [
+        "Target",
+        "Perspectives",
+        "The Translator",
+        "Translation Studies",
+        "Meta",
+        "Babel",
+        "Translation Spaces",
+        "Across Languages and Cultures",
+        "The Journal of Specialised Translation",
+        "Translation and Interpreting Studies",
+        "TTR",
+        "Interpreter and Translator Trainer",
+        "Journal of Literary Semantics",
+        "Language and Literature",
+        "Discourse Studies",
+        "Narrative"
+      ]
+    },
+    {
+      "type": "crossref",
+      "name": "Crossref Translation Journals",
+      "journals": [
+        "Target",
+        "Perspectives",
+        "The Translator",
+        "Translation Studies",
+        "Meta",
+        "Babel",
+        "Translation Spaces",
+        "Across Languages and Cultures",
+        "The Journal of Specialised Translation",
+        "Translation and Interpreting Studies",
+        "TTR",
+        "Interpreter and Translator Trainer",
+        "Journal of Literary Semantics",
+        "Language and Literature",
+        "Discourse Studies",
+        "Narrative"
+      ]
+    }
+  ],
+  "include_terms": [
+    "translation studies",
+    "translation",
+    "translator",
+    "interpreting",
+    "literary translation",
+    "Chinese-English translation",
+    "corpus linguistics",
+    "discourse",
+    "linguistics",
+    "language",
+    "stylistics",
+    "narratology",
+    "narrative",
+    "cognitive linguistics",
+    "cognitive poetics",
+    "systemic functional linguistics",
+    "rewriting",
+    "Lefevere",
+    "poetics",
+    "patronage",
+    "ideology",
+    "Bourdieu",
+    "field theory",
+    "habitus",
+    "capital",
+    "symbolic capital",
+    "sociology of translation",
+    "translator agency",
+    "translation norms",
+    "translation history"
+  ],
+  "exclude_terms": [
+    "agriculture",
+    "fertilizer",
+    "biochar",
+    "crop",
+    "rice",
+    "soil",
+    "irrigation",
+    "nutrient",
+    "chemistry",
+    "physics",
+    "materials science",
+    "clinical",
+    "medicine",
+    "engineering",
+    "environmental science"
   ],
   "conference_sources": {
     "enabled": false
   },
   "topics": [
     {
+      "id": "rewriting_field_translation_studies",
+      "name": "勒费弗尔改写理论与布迪厄场域理论",
+      "description": "关注勒费弗尔改写理论、操纵学派、意识形态、诗学、赞助人、译者主体性，以及布迪厄的场域、惯习、资本、象征资本和翻译社会学。",
+      "keywords": [
+        "Lefevere rewriting theory",
+        "rewriting theory",
+        "poetics and translation",
+        "ideology and translation",
+        "patronage and translation",
+        "Bourdieu field theory",
+        "Bourdieu and translation",
+        "sociology of translation",
+        "translation field",
+        "translator habitus",
+        "symbolic capital translation",
+        "translator agency",
+        "translation norms",
+        "literary translation reception",
+        "paratext and translation",
+        "translation history"
+      ],
+      "arxiv_categories": []
+    },
+    {
       "id": "cognitive_translation_studies",
       "name": "认知取向的翻译研究",
-      "description": "关注认知翻译学、翻译过程研究、译者认知、注意力、工作记忆、认知负荷、翻译单位、问题解决与决策过程，优先筛选可转化为论文变量、指标和实证方法的研究。",
+      "description": "关注认知翻译研究、认知语言学与翻译、体认语言学、译者认知、翻译过程、概念隐喻、识解、框架语义和意义建构。",
       "keywords": [
         "cognitive translation studies",
-        "translation process research",
+        "cognitive translatology",
+        "cognitive linguistics and translation",
+        "embodied cognition and translation",
         "translator cognition",
-        "translation cognition",
-        "cognitive load in translation",
-        "working memory translation",
-        "attention in translation",
-        "translation decision making",
-        "translation problem solving",
-        "translation units",
-        "eye tracking translation",
-        "keystroke logging translation",
-        "think aloud protocol translation",
-        "process-oriented translation studies"
+        "translation process research",
+        "conceptual metaphor translation",
+        "metaphor translation",
+        "construal in translation",
+        "frame semantics translation",
+        "cognitive poetics translation",
+        "Chinese-English literary translation"
       ],
-      "arxiv_categories": ["cs.CL", "cs.HC", "cs.AI"]
+      "arxiv_categories": []
     },
     {
       "id": "narratology_and_translation",
       "name": "叙事学与翻译研究",
-      "description": "关注叙事视角、聚焦、声音、时间、情节建构、人物塑造、叙事身份、重述与翻译中的叙事重构，尤其关注叙事学概念如何转化为译文分析指标。",
+      "description": "关注叙事视角、聚焦、声音、时间、人物塑造、叙事身份、重述、再叙事和翻译中的叙事重构。",
       "keywords": [
         "narratology and translation",
         "narrative translation",
-        "narrative perspective translation",
-        "focalization translation",
-        "voice in translation",
-        "narrative voice translation",
-        "narrative time translation",
-        "storytelling translation",
-        "re-narration translation",
+        "narrative theory translation",
+        "re-narration",
         "narrative framing translation",
+        "focalization translation",
+        "narrative voice translation",
+        "point of view translation",
         "characterization in translation",
         "fiction translation narratology"
       ],
-      "arxiv_categories": ["cs.CL"]
+      "arxiv_categories": []
     },
     {
-      "id": "cognitive_linguistics_embodied_linguistics",
-      "name": "认知语言学与体认语言学",
-      "description": "关注概念隐喻、概念整合、框架语义、构式语法、范畴化、意象图式、视角化、突显、体认认知和具身意义建构，并优先保留与翻译分析、文学阐释或语料方法可结合的论文。",
-      "keywords": [
-        "cognitive linguistics",
-        "embodied cognition",
-        "embodied linguistics",
-        "conceptual metaphor",
-        "metaphor translation",
-        "conceptual blending",
-        "frame semantics",
-        "construction grammar",
-        "image schema",
-        "categorization",
-        "construal",
-        "perspective taking language",
-        "embodied meaning",
-        "cognitive poetics"
-      ],
-      "arxiv_categories": ["cs.CL", "cs.AI"]
-    },
-    {
-      "id": "corpus_based_translation_studies",
-      "name": "语料库翻译研究",
-      "description": "关注平行语料库、可比语料库、翻译共性、译者风格、翻译规范、词汇语法特征、搭配、关键词、语义韵和语料库辅助文学翻译研究，优先筛选方法清晰、指标可复用的研究。",
+      "id": "corpus_discourse_stylistic_translation",
+      "name": "语料库、话语与文体翻译研究",
+      "description": "关注语料库翻译研究、话语分析、批评话语分析、系统功能语言学、文体学、译者风格、关键词、搭配、语义韵和评价系统。",
       "keywords": [
         "corpus-based translation studies",
         "corpus translation studies",
         "parallel corpus translation",
         "comparable corpus translation",
-        "translation universals",
         "translator style",
-        "translator stylometry",
         "translation norms corpus",
         "keywords in translation",
         "collocation translation",
         "semantic prosody translation",
         "corpus-assisted literary translation",
-        "corpus-based discourse analysis translation"
+        "critical discourse analysis translation",
+        "systemic functional linguistics translation",
+        "appraisal theory translation",
+        "stylistics and translation"
       ],
-      "arxiv_categories": ["cs.CL", "cs.IR", "stat.AP"]
+      "arxiv_categories": []
     },
     {
-      "id": "ai_machine_translation_translator_studies",
-      "name": "AI、机器翻译与译者研究",
-      "description": "关注机器翻译、神经机器翻译、大语言模型辅助翻译、译后编辑、人机协同、翻译质量评估、翻译伦理与译者主体性，为投稿时连接数字人文和智能翻译研究保留入口。",
+      "id": "translation_technology_translator_studies",
+      "name": "翻译技术、机器翻译与译者研究",
+      "description": "只保留与翻译学、译者研究、文学翻译、人机协同、译后编辑、翻译伦理和翻译质量评价直接相关的技术研究。",
       "keywords": [
-        "machine translation",
+        "machine translation and translation studies",
         "neural machine translation",
-        "large language models translation",
+        "literary machine translation",
         "LLM-assisted translation",
         "computer-assisted translation",
         "post-editing",
-        "human machine interaction translation",
-        "translation quality assessment",
-        "translation evaluation",
-        "translator agency",
+        "translator-computer interaction",
         "translation technology",
-        "AI and translation studies",
-        "literary machine translation"
+        "translation quality assessment",
+        "translator agency technology",
+        "translation ethics",
+        "translator subjectivity"
       ],
-      "arxiv_categories": ["cs.CL", "cs.AI", "cs.HC"]
+      "arxiv_categories": []
     }
   ]
 }

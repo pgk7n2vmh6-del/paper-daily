@@ -27,11 +27,13 @@ from scripts.collect_papers import (
     merge_config,
     openalex_abstract_text,
     openalex_paper_from_work,
+    parse_relevance_filter,
     parse_arxiv_entries,
     parse_conference_sources,
     parse_dblp_html_toc,
     parse_dblp_hits,
     parse_sources,
+    passes_relevance_filter,
     should_retry_arxiv_error,
     should_summarize_paper_with_llm,
     split_conference_payload,
@@ -463,6 +465,56 @@ class RetentionTest(unittest.TestCase):
         self.assertFalse(is_relevant_enough(weak_title, {"score": 0.03, "keyword_hits": []}))
         self.assertFalse(is_relevant_enough(weak_conference, {"score": 0.05, "keyword_hits": []}))
         self.assertTrue(is_relevant_enough(keyword_match, {"score": 0.04, "keyword_hits": ["KV cache compression"]}))
+
+    def test_configurable_relevance_filter_requires_translation_domain(self) -> None:
+        relevance_filter = parse_relevance_filter(
+            {
+                "include_terms": ["translation", "linguistics", "discourse", "corpus linguistics", "rewriting"],
+                "exclude_terms": ["biochar", "fertilizer", "rice", "soil", "materials science"],
+            }
+        )
+        translation_paper = {
+            "title": "Rewriting and Patronage in Chinese-English Literary Translation",
+            "summary": "This article studies translation poetics and translator agency.",
+            "venue": "Target",
+            "categories": ["Language and Linguistics"],
+        }
+        agriculture_paper = {
+            "title": "Biochar and fertilizer improve rice yield in irrigated soil",
+            "summary": "A field experiment evaluates nutrient uptake and crop growth.",
+            "venue": "Agriculture, Ecosystems and Environment",
+            "categories": ["Agriculture"],
+        }
+        generic_paper = {
+            "title": "A framework for evaluation and assessment",
+            "summary": "This model proposes a broad approach and analysis.",
+            "venue": "Generic Studies",
+            "categories": [],
+        }
+
+        self.assertTrue(passes_relevance_filter(translation_paper, relevance_filter)[0])
+        self.assertFalse(passes_relevance_filter(agriculture_paper, relevance_filter)[0])
+        self.assertFalse(passes_relevance_filter(generic_paper, relevance_filter)[0])
+
+    def test_relevance_filter_blocks_excluded_terms_even_with_keyword_hit(self) -> None:
+        relevance_filter = parse_relevance_filter(
+            {
+                "include_terms": ["translation", "language"],
+                "exclude_terms": ["soil", "fertilizer"],
+            }
+        )
+        paper_with_translation_noise = {
+            "title": "Language model analysis of soil fertilizer response",
+            "summary": "The article is about crop nutrient uptake.",
+        }
+
+        self.assertFalse(
+            is_relevant_enough(
+                paper_with_translation_noise,
+                {"score": 0.5, "keyword_hits": ["language"]},
+                relevance_filter,
+            )
+        )
 
     def test_llm_summary_skips_conference_and_title_only_by_default(self) -> None:
         self.assertFalse(should_summarize_paper_with_llm({"source_type": "conference", "summary": "DBLP 题录。"}))

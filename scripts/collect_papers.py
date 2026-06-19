@@ -44,6 +44,7 @@ TRANSIENT_HTTP_CODES = {429, 500, 502, 503, 504}
 DBLP_TRANSIENT_HTTP_CODES = {429, 502, 503, 504}
 DEFAULT_SOURCE_TYPES = ["arxiv", "openalex", "crossref"]
 FEED_NAMESPACES = {"atom": "http://www.w3.org/2005/Atom"}
+BROAD_RELEVANCE_TERMS = {"framework", "approach", "analysis", "assessment", "model", "evaluation"}
 
 
 @dataclass(frozen=True)
@@ -63,6 +64,7 @@ class SourceConfig:
     enabled: bool = True
     headers_env: str = ""
     bearer_token_env: str = ""
+    journals: list[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -73,6 +75,12 @@ class ConferenceSource:
     dblp_toc_patterns: list[str]
     years: list[int]
     enabled: bool = True
+
+
+@dataclass(frozen=True)
+class RelevanceFilter:
+    include_terms: list[str]
+    exclude_terms: list[str]
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -164,9 +172,17 @@ def parse_sources(config: dict[str, Any]) -> list[SourceConfig]:
                 enabled=bool(item.get("enabled", True)),
                 headers_env=str(item.get("headers_env") or ""),
                 bearer_token_env=str(item.get("bearer_token_env") or ""),
+                journals=[str(journal) for journal in item.get("journals", []) if str(journal).strip()],
             )
         )
     return sources
+
+
+def parse_relevance_filter(config: dict[str, Any]) -> RelevanceFilter:
+    return RelevanceFilter(
+        include_terms=[str(term).strip() for term in config.get("include_terms", []) if str(term).strip()],
+        exclude_terms=[str(term).strip() for term in config.get("exclude_terms", []) if str(term).strip()],
+    )
 
 
 def merge_venues(default_venues: list[dict[str, Any]], override_venues: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -314,6 +330,9 @@ def load_issue_config(default_config: dict[str, Any]) -> dict[str, Any]:
                 print(f"Warning: config issue JSON is invalid, using config file: {exc}", file=sys.stderr)
                 return default_config
             if issue_config and issue_config.get("topics"):
+                if default_config.get("include_terms") and not issue_config.get("include_terms"):
+                    print("Warning: config issue is legacy and lacks include_terms; using config file.", file=sys.stderr)
+                    return default_config
                 return merge_config(default_config, issue_config)
     return default_config
 
@@ -1074,53 +1093,60 @@ def openalex_abstract_text(work: dict[str, Any]) -> str:
 
 
 def fetch_openalex(topic: Topic, max_results: int, source: SourceConfig) -> list[dict[str, Any]]:
-    params = {
-        "search": topic_plain_query(topic),
-        "per-page": str(max_results),
-        "sort": "publication_date:desc",
-    }
     mailto = os.getenv("CONTACT_EMAIL") or os.getenv("OPENALEX_EMAIL")
-    if mailto:
-        params["mailto"] = mailto
-    url = f"{OPENALEX_WORKS_URL}?{urllib.parse.urlencode(params)}"
-    data = request_json(url, timeout=float(os.getenv("OPENALEX_TIMEOUT_SECONDS", "60")))
+    search_queries = [topic_plain_query(topic)]
+    if source.journals:
+        search_queries = [f"{topic_plain_query(topic)} {journal}" for journal in source.journals]
     papers = []
-    for work in data.get("results", []):
-        locations = work.get("locations") or []
-        primary = work.get("primary_location") or {}
-        best_oa = work.get("best_oa_location") or {}
-        pdf_url = (
-            primary.get("pdf_url")
-            or best_oa.get("pdf_url")
-            or next((location.get("pdf_url") for location in locations if location.get("pdf_url")), "")
-        )
-        authors = [
-            str((authorship.get("author") or {}).get("display_name") or "")
-            for authorship in work.get("authorships", [])
-        ]
-        concepts = [
-            str(concept.get("display_name") or "")
-            for concept in work.get("concepts", [])[:8]
-            if concept.get("display_name")
-        ]
-        work_id = str(work.get("id") or work.get("doi") or work.get("title") or "")
-        if not work_id:
-            continue
-        papers.append(
-            {
-                "id": f"openalex:{work_id.rsplit('/', 1)[-1]}",
-                "source": source.name,
-                "title": normalize_space(str(work.get("title") or "")),
-                "authors": [author for author in authors if author],
-                "summary": normalize_space(openalex_abstract_text(work)),
-                "published": date_to_iso(work.get("publication_date") or work.get("publication_year")),
-                "updated": "",
-                "paper_url": str(work.get("doi") or work.get("id") or ""),
-                "pdf_url": str(pdf_url or ""),
-                "categories": concepts,
-                "seed_topic": topic.id,
-            }
-        )
+    for search_query in search_queries:
+        params = {
+            "search": search_query,
+            "per-page": str(max_results),
+            "sort": "publication_date:desc",
+        }
+        if mailto:
+            params["mailto"] = mailto
+        url = f"{OPENALEX_WORKS_URL}?{urllib.parse.urlencode(params)}"
+        data = request_json(url, timeout=float(os.getenv("OPENALEX_TIMEOUT_SECONDS", "60")))
+        for work in data.get("results", []):
+            locations = work.get("locations") or []
+            primary = work.get("primary_location") or {}
+            best_oa = work.get("best_oa_location") or {}
+            primary_source = primary.get("source") or {}
+            venue = str(primary_source.get("display_name") or "")
+            pdf_url = (
+                primary.get("pdf_url")
+                or best_oa.get("pdf_url")
+                or next((location.get("pdf_url") for location in locations if location.get("pdf_url")), "")
+            )
+            authors = [
+                str((authorship.get("author") or {}).get("display_name") or "")
+                for authorship in work.get("authorships", [])
+            ]
+            concepts = [
+                str(concept.get("display_name") or "")
+                for concept in work.get("concepts", [])[:8]
+                if concept.get("display_name")
+            ]
+            work_id = str(work.get("id") or work.get("doi") or work.get("title") or "")
+            if not work_id:
+                continue
+            papers.append(
+                {
+                    "id": f"openalex:{work_id.rsplit('/', 1)[-1]}",
+                    "source": source.name,
+                    "title": normalize_space(str(work.get("title") or "")),
+                    "authors": [author for author in authors if author],
+                    "summary": normalize_space(openalex_abstract_text(work)),
+                    "published": date_to_iso(work.get("publication_date") or work.get("publication_year")),
+                    "updated": "",
+                    "paper_url": str(work.get("doi") or work.get("id") or ""),
+                    "pdf_url": str(pdf_url or ""),
+                    "categories": concepts,
+                    "venue": venue,
+                    "seed_topic": topic.id,
+                }
+            )
     return papers
 
 
@@ -1137,46 +1163,52 @@ def crossref_date(item: dict[str, Any]) -> str:
 
 
 def fetch_crossref(topic: Topic, max_results: int, source: SourceConfig) -> list[dict[str, Any]]:
-    params = {
-        "query.bibliographic": topic_plain_query(topic),
-        "rows": str(max_results),
-        "sort": "published",
-        "order": "desc",
-    }
     mailto = os.getenv("CONTACT_EMAIL") or os.getenv("CROSSREF_EMAIL")
-    if mailto:
-        params["mailto"] = mailto
     headers = {"User-Agent": f"paper-daily-collector/1.0 (mailto:{mailto or 'unknown@example.com'})"}
-    url = f"{CROSSREF_WORKS_URL}?{urllib.parse.urlencode(params)}"
-    data = request_json(url, headers=headers, timeout=float(os.getenv("CROSSREF_TIMEOUT_SECONDS", "60")))
+    journal_queries = source.journals or [""]
     papers = []
-    for item in (data.get("message") or {}).get("items", []):
-        title = normalize_space(" ".join(str(part) for part in item.get("title", []) if part))
-        doi = str(item.get("DOI") or "")
-        paper_url = str(item.get("URL") or (f"https://doi.org/{doi}" if doi else ""))
-        if not title or not (doi or paper_url):
-            continue
-        authors = []
-        for author in item.get("author", [])[:12]:
-            name = normalize_space(f"{author.get('given', '')} {author.get('family', '')}")
-            if name:
-                authors.append(name)
-        subjects = [str(subject) for subject in item.get("subject", [])[:8]]
-        papers.append(
-            {
-                "id": f"crossref:{doi or slugify(title)}",
-                "source": source.name,
-                "title": title,
-                "authors": authors,
-                "summary": html_to_text(str(item.get("abstract") or "")),
-                "published": crossref_date(item),
-                "updated": "",
-                "paper_url": paper_url,
-                "pdf_url": "",
-                "categories": subjects,
-                "seed_topic": topic.id,
-            }
-        )
+    for journal in journal_queries:
+        params = {
+            "query.bibliographic": topic_plain_query(topic),
+            "rows": str(max_results),
+            "sort": "published",
+            "order": "desc",
+        }
+        if journal:
+            params["query.container-title"] = journal
+        if mailto:
+            params["mailto"] = mailto
+        url = f"{CROSSREF_WORKS_URL}?{urllib.parse.urlencode(params)}"
+        data = request_json(url, headers=headers, timeout=float(os.getenv("CROSSREF_TIMEOUT_SECONDS", "60")))
+        for item in (data.get("message") or {}).get("items", []):
+            title = normalize_space(" ".join(str(part) for part in item.get("title", []) if part))
+            doi = str(item.get("DOI") or "")
+            paper_url = str(item.get("URL") or (f"https://doi.org/{doi}" if doi else ""))
+            if not title or not (doi or paper_url):
+                continue
+            authors = []
+            for author in item.get("author", [])[:12]:
+                name = normalize_space(f"{author.get('given', '')} {author.get('family', '')}")
+                if name:
+                    authors.append(name)
+            subjects = [str(subject) for subject in item.get("subject", [])[:8]]
+            venue = normalize_space(" ".join(str(part) for part in item.get("container-title", []) if part))
+            papers.append(
+                {
+                    "id": f"crossref:{doi or slugify(title)}",
+                    "source": source.name,
+                    "title": title,
+                    "authors": authors,
+                    "summary": html_to_text(str(item.get("abstract") or "")),
+                    "published": crossref_date(item),
+                    "updated": "",
+                    "paper_url": paper_url,
+                    "pdf_url": "",
+                    "categories": subjects,
+                    "venue": venue,
+                    "seed_topic": topic.id,
+                }
+            )
     return papers
 
 
@@ -1391,7 +1423,7 @@ def collection_cutoff(
 
 
 def keyword_score(topic: Topic, paper: dict[str, Any]) -> tuple[float, list[str]]:
-    haystack = f"{paper.get('title', '')} {paper.get('summary', '')}".lower()
+    haystack = paper_relevance_text(paper).lower()
     hits = []
     weighted = 0.0
     for keyword in topic.keywords:
@@ -1413,7 +1445,9 @@ def category_score(topic: Topic, paper: dict[str, Any]) -> float:
 
 def lexical_overlap_score(topic: Topic, paper: dict[str, Any]) -> float:
     topic_terms = set(re.findall(r"[a-zA-Z0-9]+", f"{topic.description} {' '.join(topic.keywords)}".lower()))
-    paper_terms = set(re.findall(r"[a-zA-Z0-9]+", f"{paper.get('title', '')} {paper.get('summary', '')}".lower()))
+    topic_terms -= BROAD_RELEVANCE_TERMS
+    paper_terms = set(re.findall(r"[a-zA-Z0-9]+", paper_relevance_text(paper).lower()))
+    paper_terms -= BROAD_RELEVANCE_TERMS
     if not topic_terms or not paper_terms:
         return 0.0
     overlap = topic_terms & paper_terms
@@ -1474,7 +1508,61 @@ def has_meaningful_summary(paper: dict[str, Any], min_chars: int = 80) -> bool:
     return len(summary) >= min_chars
 
 
-def is_relevant_enough(paper: dict[str, Any], best_match: dict[str, Any]) -> bool:
+def paper_relevance_text(paper: dict[str, Any]) -> str:
+    categories = " ".join(str(category) for category in paper.get("categories", []))
+    keywords = " ".join(str(keyword) for keyword in paper.get("keywords", []))
+    return normalize_space(
+        " ".join(
+            [
+                str(paper.get("title") or ""),
+                str(paper.get("summary") or ""),
+                str(paper.get("venue") or ""),
+                str(paper.get("source") or ""),
+                categories,
+                keywords,
+            ]
+        )
+    )
+
+
+def term_matches(text: str, term: str) -> bool:
+    normalized = term.strip().lower()
+    if not normalized:
+        return False
+    if re.search(r"[\u4e00-\u9fff]", normalized):
+        return normalized in text
+    return re.search(rf"(?<![a-z0-9]){re.escape(normalized)}(?![a-z0-9])", text) is not None
+
+
+def matching_terms(text: str, terms: list[str]) -> list[str]:
+    lowered = text.lower()
+    return [term for term in terms if term_matches(lowered, term)]
+
+
+def passes_relevance_filter(paper: dict[str, Any], relevance_filter: RelevanceFilter | None) -> tuple[bool, str]:
+    if not relevance_filter or (not relevance_filter.include_terms and not relevance_filter.exclude_terms):
+        return True, ""
+
+    text = paper_relevance_text(paper)
+    include_hits = matching_terms(text, relevance_filter.include_terms)
+    if relevance_filter.include_terms and not include_hits:
+        return False, "未命中学科 include_terms"
+
+    exclude_hits = matching_terms(text, relevance_filter.exclude_terms)
+    if exclude_hits:
+        return False, "命中排除词：" + "、".join(exclude_hits[:6])
+
+    return True, "学科门槛命中：" + "、".join(include_hits[:6])
+
+
+def is_relevant_enough(
+    paper: dict[str, Any],
+    best_match: dict[str, Any],
+    relevance_filter: RelevanceFilter | None = None,
+) -> bool:
+    passes_filter, _ = passes_relevance_filter(paper, relevance_filter)
+    if not passes_filter:
+        return False
     if best_match.get("keyword_hits"):
         return True
 
@@ -1812,6 +1900,7 @@ def merge_with_retained_papers(
     now: dt.datetime,
     recent_history_days: int,
     active_conference_years_by_source: dict[str, set[int]] | None = None,
+    relevance_filter: RelevanceFilter | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     existing_papers = existing_payload.get("papers", []) if isinstance(existing_payload, dict) else []
     existing_generated_at = str(existing_payload.get("generated_at_iso") or existing_payload.get("generated_at") or now.isoformat())
@@ -1824,6 +1913,10 @@ def merge_with_retained_papers(
         key = paper_key(paper)
         if not key:
             continue
+        passes_filter, _ = passes_relevance_filter(paper, relevance_filter)
+        if not passes_filter:
+            dropped_low += 1
+            continue
         seen_at = parse_datetime(str(paper.get("first_seen_at") or paper.get("last_seen_at") or existing_generated_at))
         is_recent = bool(
             recent_history_days > 0
@@ -1832,7 +1925,7 @@ def merge_with_retained_papers(
         )
         is_active_conference = (
             should_retain_conference_paper(paper, active_conference_years_by_source)
-            and is_relevant_enough(paper, paper.get("best_match") or {})
+            and is_relevant_enough(paper, paper.get("best_match") or {}, relevance_filter)
         )
         if paper.get("source_type") == "conference" and active_conference_years_by_source is not None and not is_active_conference:
             dropped_low += 1
@@ -1940,6 +2033,7 @@ def collect(
     config = load_issue_config(default_config)
     topics = parse_topics(config)
     sources = parse_sources(config)
+    relevance_filter = parse_relevance_filter(config)
     now = dt.datetime.now(dt.timezone.utc)
     conference_sources = parse_conference_sources(config, now)
     active_conference_years_by_source = active_conference_years(conference_sources)
@@ -2068,6 +2162,7 @@ def collect(
     recent_papers = []
     daily_backfill_candidates = []
     filtered_low_relevance = 0
+    filtered_domain_boundary = 0
     raw_daily_candidate_count = 0
     daily_outside_cutoff_count = 0
     backfill_days = max(days, env_int("DAILY_BACKFILL_DAYS", 14))
@@ -2091,7 +2186,16 @@ def collect(
         matches = [score_paper(topic, paper) for topic in topics]
         matches.sort(key=lambda item: item["score"], reverse=True)
         best_match = matches[0]
-        if not is_relevant_enough(paper, best_match):
+        passes_filter, filter_reason = passes_relevance_filter(paper, relevance_filter)
+        if not passes_filter:
+            filtered_low_relevance += 1
+            filtered_domain_boundary += 1
+            if filter_reason:
+                paper["filter_reason"] = filter_reason
+            continue
+        if filter_reason:
+            best_match["reason"] = f"{best_match['reason']}；{filter_reason}"
+        if not is_relevant_enough(paper, best_match, relevance_filter):
             filtered_low_relevance += 1
             continue
         paper["matches"] = matches
@@ -2178,7 +2282,11 @@ def collect(
     daily_recent_papers = [paper for paper in recent_papers if paper.get("source_type") != "conference"]
     conference_recent_papers = [paper for paper in recent_papers if paper.get("source_type") == "conference"]
     daily_merged_papers, daily_retention_stats = merge_with_retained_papers(
-        daily_recent_papers, existing_payload, now, recent_history_days
+        daily_recent_papers,
+        existing_payload,
+        now,
+        recent_history_days,
+        relevance_filter=relevance_filter,
     )
     conference_merged_papers, conference_retention_stats = merge_with_retained_papers(
         conference_recent_papers,
@@ -2186,6 +2294,7 @@ def collect(
         now,
         recent_history_days,
         active_conference_years_by_source,
+        relevance_filter,
     )
     daily_merged_papers.sort(key=lambda p: (p["best_match"]["score"], paper_activity_datetime(p)), reverse=True)
     conference_merged_papers.sort(key=lambda p: (p["best_match"]["score"], paper_activity_datetime(p)), reverse=True)
@@ -2201,6 +2310,7 @@ def collect(
         "daily_backfill_added_count": daily_backfill_added_count,
         "min_daily_papers": min_daily_papers,
         "filtered_low_relevance_count": filtered_low_relevance,
+        "filtered_domain_boundary_count": filtered_domain_boundary,
         "days": days,
         "collection_mode": collection_mode,
         "collection_cutoff_iso": cutoff.isoformat(),
