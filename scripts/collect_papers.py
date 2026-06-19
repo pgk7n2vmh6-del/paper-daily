@@ -1622,8 +1622,14 @@ def call_openai_compatible(prompt: str) -> dict[str, Any]:
         headers=llm_headers(api_key),
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=90) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=90) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", "replace").strip()
+        if body:
+            print(f"LLM API error response: {body[:1000]}")
+        raise
     content = data["choices"][0]["message"]["content"]
     return json.loads(content)
 
