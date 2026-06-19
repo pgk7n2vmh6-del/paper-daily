@@ -516,6 +516,23 @@ class RetentionTest(unittest.TestCase):
             )
         )
 
+    def test_relevance_filter_does_not_count_collector_source_name(self) -> None:
+        relevance_filter = parse_relevance_filter(
+            {
+                "include_terms": ["translation", "translator", "language"],
+                "exclude_terms": [],
+            }
+        )
+        unrelated_paper = {
+            "title": "AI-Assisted Identity and Access Threat Detection",
+            "summary": "This article studies cybersecurity attacks and access control.",
+            "source": "Crossref Translation Journals",
+            "venue": "International Journal of Cybersecurity",
+            "categories": ["Computer security"],
+        }
+
+        self.assertFalse(passes_relevance_filter(unrelated_paper, relevance_filter)[0])
+
     def test_llm_summary_skips_conference_and_title_only_by_default(self) -> None:
         self.assertFalse(should_summarize_paper_with_llm({"source_type": "conference", "summary": "DBLP 题录。"}))
         self.assertFalse(should_summarize_paper_with_llm({"source": "Crossref", "summary": ""}))

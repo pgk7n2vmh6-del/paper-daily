@@ -1511,13 +1511,14 @@ def has_meaningful_summary(paper: dict[str, Any], min_chars: int = 80) -> bool:
 def paper_relevance_text(paper: dict[str, Any]) -> str:
     categories = " ".join(str(category) for category in paper.get("categories", []))
     keywords = " ".join(str(keyword) for keyword in paper.get("keywords", []))
+    # Source names are collector labels such as "Crossref Translation Journals".
+    # They should not count as domain evidence for individual paper relevance.
     return normalize_space(
         " ".join(
             [
                 str(paper.get("title") or ""),
                 str(paper.get("summary") or ""),
                 str(paper.get("venue") or ""),
-                str(paper.get("source") or ""),
                 categories,
                 keywords,
             ]
