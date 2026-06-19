@@ -1598,7 +1598,7 @@ def call_openai_compatible(prompt: str) -> dict[str, Any]:
     base_url = os.getenv("LLM_BASE_URL", "")
     using_deepseek = bool(os.getenv("DEEPSEEK_API_KEY") and not os.getenv("LLM_API_KEY") and not os.getenv("OPENAI_API_KEY"))
     if not base_url:
-        base_url = "https://api.deepseek.com/v1" if using_deepseek else "https://api.openai.com/v1"
+        base_url = "https://api.deepseek.com" if using_deepseek else "https://api.openai.com/v1"
     model = os.getenv("LLM_MODEL", "deepseek-v4-flash" if os.getenv("DEEPSEEK_API_KEY") else "gpt-4o-mini")
     endpoint = base_url.rstrip("/") + "/chat/completions"
     payload = {
@@ -1614,6 +1614,8 @@ def call_openai_compatible(prompt: str) -> dict[str, Any]:
     }
     if not using_deepseek:
         payload["response_format"] = {"type": "json_object"}
+    else:
+        payload["thinking"] = {"type": "disabled"}
     req = urllib.request.Request(
         endpoint,
         data=json.dumps(payload).encode("utf-8"),
