@@ -6,3 +6,5 @@ site/
 .DS_Store
 work/
 outputs/
+paper-daily-ready.zip
+web/data/*.json
