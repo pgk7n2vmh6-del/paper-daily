@@ -1,8 +1,13 @@
 {
+  "language_filter": {
+    "require_english": true,
+    "min_english_stopword_hits": 2
+  },
   "sources": [
     {
       "type": "openalex",
-      "name": "OpenAlex Translation Journals",
+      "name": "OpenAlex Core Translation Studies Journals",
+      "strict_venue_match": true,
       "journals": [
         "Target",
         "Perspectives",
@@ -13,18 +18,17 @@
         "Translation Spaces",
         "Across Languages and Cultures",
         "The Journal of Specialised Translation",
+        "Journal of Specialised Translation",
         "Translation and Interpreting Studies",
         "TTR",
-        "Interpreter and Translator Trainer",
-        "Journal of Literary Semantics",
-        "Language and Literature",
-        "Discourse Studies",
-        "Narrative"
+        "The Interpreter and Translator Trainer",
+        "Interpreter and Translator Trainer"
       ]
     },
     {
       "type": "crossref",
-      "name": "Crossref Translation Journals",
+      "name": "Crossref Core Translation Studies Journals",
+      "strict_venue_match": true,
       "journals": [
         "Target",
         "Perspectives",
@@ -35,13 +39,57 @@
         "Translation Spaces",
         "Across Languages and Cultures",
         "The Journal of Specialised Translation",
+        "Journal of Specialised Translation",
         "Translation and Interpreting Studies",
         "TTR",
-        "Interpreter and Translator Trainer",
-        "Journal of Literary Semantics",
+        "The Interpreter and Translator Trainer",
+        "Interpreter and Translator Trainer"
+      ]
+    },
+    {
+      "type": "openalex",
+      "name": "OpenAlex English Language and Literature Watchlist",
+      "strict_venue_match": true,
+      "journals": [
         "Language and Literature",
+        "Journal of Literary Semantics",
+        "Style",
+        "Narrative",
+        "Poetics Today",
+        "Text & Talk",
         "Discourse Studies",
-        "Narrative"
+        "Discourse & Society",
+        "Journal of English Linguistics",
+        "English Language and Linguistics",
+        "Applied Linguistics",
+        "International Journal of Corpus Linguistics",
+        "Corpus Linguistics and Linguistic Theory",
+        "Cognitive Linguistics",
+        "Review of Cognitive Linguistics",
+        "Metaphor and Symbol"
+      ]
+    },
+    {
+      "type": "crossref",
+      "name": "Crossref English Language and Literature Watchlist",
+      "strict_venue_match": true,
+      "journals": [
+        "Language and Literature",
+        "Journal of Literary Semantics",
+        "Style",
+        "Narrative",
+        "Poetics Today",
+        "Text & Talk",
+        "Discourse Studies",
+        "Discourse & Society",
+        "Journal of English Linguistics",
+        "English Language and Linguistics",
+        "Applied Linguistics",
+        "International Journal of Corpus Linguistics",
+        "Corpus Linguistics and Linguistic Theory",
+        "Cognitive Linguistics",
+        "Review of Cognitive Linguistics",
+        "Metaphor and Symbol"
       ]
     }
   ],
@@ -50,33 +98,49 @@
     "translation",
     "translator",
     "interpreting",
+    "interpretation",
     "translation criticism",
     "literary translation",
     "Chinese-English translation",
     "English-Chinese translation",
     "Chinese literature in translation",
+    "world literature",
+    "translated literature",
     "corpus-based translation studies",
     "corpus translation studies",
     "parallel corpus",
     "comparable corpus",
     "corpus linguistics",
-    "discourse",
+    "corpus-based",
     "discourse analysis",
     "critical discourse analysis",
-    "linguistics",
-    "language",
+    "discourse",
+    "English language",
+    "English literature",
+    "literary studies",
+    "comparative literature",
     "stylistics",
+    "literary stylistics",
     "style",
     "narratology",
     "narrative",
     "narrative theory",
     "focalization",
     "voice",
+    "point of view",
     "cognitive linguistics",
+    "cognitive semantics",
+    "cognitive grammar",
     "cognitive poetics",
     "embodied cognition",
+    "embodied cognitive linguistics",
+    "conceptual metaphor",
+    "metaphor",
+    "construal",
+    "frame semantics",
     "systemic functional linguistics",
     "SFL",
+    "appraisal theory",
     "rewriting",
     "rewriting theory",
     "Lefevere",
@@ -89,6 +153,7 @@
     "habitus",
     "capital",
     "symbolic capital",
+    "cultural capital",
     "sociology of translation",
     "translator agency",
     "translation norms",
@@ -97,7 +162,10 @@
     "paratext",
     "translator style",
     "translator subjectivity",
-    "world literature"
+    "translation technology",
+    "post-editing",
+    "machine translation",
+    "LLM-assisted translation"
   ],
   "exclude_terms": [
     "agriculture",
@@ -149,7 +217,19 @@
     "access control",
     "lane-level map",
     "map generation",
-    "autonomous driving"
+    "autonomous driving",
+    "internet of things",
+    "IoT",
+    "sensor",
+    "wireless",
+    "network security",
+    "financial sentiment",
+    "stock market",
+    "portfolio",
+    "HCI",
+    "synthetic persona",
+    "knowledge transfer",
+    "technology transfer"
   ],
   "conference_sources": {
     "enabled": false
@@ -184,9 +264,9 @@
       "arxiv_categories": []
     },
     {
-      "id": "cognitive_translation_studies",
-      "name": "认知取向的翻译研究",
-      "description": "关注王峰老师研究方向中的认知翻译研究、认知语言学与翻译、体认语言学、译者认知、翻译过程、概念隐喻、识解、框架语义、意义建构及其在文学翻译和语料分析中的应用。",
+      "id": "cognitive_translation_and_linguistics",
+      "name": "认知取向翻译研究与认知语言学",
+      "description": "关注王峰老师相关方向中的认知翻译研究、认知语言学、体认语言学、概念隐喻、识解、框架语义、意义建构，以及这些概念如何转化为文学翻译和语料分析指标。也保留能启发研究问题的英语认知语言学论文。",
       "keywords": [
         "cognitive translation studies",
         "cognitive translatology",
@@ -195,22 +275,26 @@
         "embodied cognition and translation",
         "translator cognition",
         "translation process research",
-        "cognitive load in translation",
         "translation decision making",
         "conceptual metaphor translation",
         "metaphor translation",
+        "conceptual metaphor",
+        "cognitive metaphor",
         "construal in translation",
+        "construal",
         "frame semantics translation",
+        "frame semantics",
+        "cognitive grammar",
         "cognitive poetics translation",
-        "literary translation cognition",
+        "cognitive poetics",
         "Chinese-English literary translation"
       ],
       "arxiv_categories": []
     },
     {
-      "id": "narratology_and_translation",
-      "name": "叙事学与翻译研究",
-      "description": "关注叙事视角、聚焦、声音、时间、人物塑造、叙事身份、重述、再叙事、叙事框架与翻译中的叙事重构，尤其关注如何把叙事学概念转化为译文分析指标。",
+      "id": "narratology_literature_and_translation",
+      "name": "叙事学、英语文学与翻译研究",
+      "description": "关注叙事视角、聚焦、声音、时间、人物塑造、叙事身份、重述、再叙事、叙事框架与翻译中的叙事重构；同时保留能帮助打开思路的英语文学、叙事理论和文学文体学研究。",
       "keywords": [
         "narratology and translation",
         "narrative translation",
@@ -224,14 +308,19 @@
         "narrative time translation",
         "fiction translation narratology",
         "literary translation narrative",
-        "translator narrative intervention"
+        "translator narrative intervention",
+        "narrative theory",
+        "focalization",
+        "narrative voice",
+        "literary narrative",
+        "English literature narrative"
       ],
       "arxiv_categories": []
     },
     {
       "id": "corpus_discourse_stylistic_translation",
       "name": "语料库、话语与文体翻译研究",
-      "description": "关注语料库翻译研究、话语分析、批评话语分析、系统功能语言学、文体学、译者风格、关键词、搭配、语义韵、评价系统和文学翻译中的可操作指标。",
+      "description": "关注语料库翻译研究、话语分析、批评话语分析、系统功能语言学、文体学、译者风格、关键词、搭配、语义韵、评价系统和文学翻译中的可操作指标；也保留能迁移到译文分析的英语语言文学方法论文。",
       "keywords": [
         "corpus-based translation studies",
         "corpus translation studies",
@@ -249,7 +338,12 @@
         "systemic functional linguistics translation",
         "appraisal theory translation",
         "stylistics and translation",
-        "literary stylistics translation"
+        "literary stylistics translation",
+        "corpus stylistics",
+        "corpus-based discourse analysis",
+        "appraisal theory",
+        "semantic prosody",
+        "collocation"
       ],
       "arxiv_categories": []
     },

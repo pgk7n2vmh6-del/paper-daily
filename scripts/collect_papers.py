@@ -65,6 +65,7 @@ class SourceConfig:
     headers_env: str = ""
     bearer_token_env: str = ""
     journals: list[str] | None = None
+    strict_venue_match: bool = False
 
 
 @dataclass(frozen=True)
@@ -81,6 +82,8 @@ class ConferenceSource:
 class RelevanceFilter:
     include_terms: list[str]
     exclude_terms: list[str]
+    require_english: bool = False
+    min_english_stopword_hits: int = 2
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -173,15 +176,21 @@ def parse_sources(config: dict[str, Any]) -> list[SourceConfig]:
                 headers_env=str(item.get("headers_env") or ""),
                 bearer_token_env=str(item.get("bearer_token_env") or ""),
                 journals=[str(journal) for journal in item.get("journals", []) if str(journal).strip()],
+                strict_venue_match=bool(item.get("strict_venue_match", False)),
             )
         )
     return sources
 
 
 def parse_relevance_filter(config: dict[str, Any]) -> RelevanceFilter:
+    language_filter = config.get("language_filter", {})
+    if not isinstance(language_filter, dict):
+        language_filter = {}
     return RelevanceFilter(
         include_terms=[str(term).strip() for term in config.get("include_terms", []) if str(term).strip()],
         exclude_terms=[str(term).strip() for term in config.get("exclude_terms", []) if str(term).strip()],
+        require_english=bool(language_filter.get("require_english", False)),
+        min_english_stopword_hits=int(language_filter.get("min_english_stopword_hits", 2) or 2),
     )
 
 
@@ -332,6 +341,9 @@ def load_issue_config(default_config: dict[str, Any]) -> dict[str, Any]:
             if issue_config and issue_config.get("topics"):
                 if default_config.get("include_terms") and not issue_config.get("include_terms"):
                     print("Warning: config issue is legacy and lacks include_terms; using config file.", file=sys.stderr)
+                    return default_config
+                if default_config.get("language_filter") and not issue_config.get("language_filter"):
+                    print("Warning: config issue lacks language_filter; using config file.", file=sys.stderr)
                     return default_config
                 return merge_config(default_config, issue_config)
     return default_config
@@ -1092,6 +1104,29 @@ def openalex_abstract_text(work: dict[str, Any]) -> str:
     return " ".join(word for _, word in sorted(words))
 
 
+def normalized_venue_name(value: str) -> str:
+    text = html.unescape(value).lower()
+    text = re.sub(r"&", " and ", text)
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return normalize_space(text)
+
+
+def venue_matches_journal(venue: str, journal: str) -> bool:
+    venue_key = normalized_venue_name(venue)
+    journal_key = normalized_venue_name(journal)
+    if not venue_key or not journal_key:
+        return False
+    if venue_key == journal_key:
+        return True
+    return venue_key.startswith(f"{journal_key} ") or venue_key.endswith(f" {journal_key}")
+
+
+def venue_matches_any_journal(venue: str, journals: list[str] | None) -> bool:
+    if not journals:
+        return True
+    return any(venue_matches_journal(venue, journal) for journal in journals)
+
+
 def fetch_openalex(topic: Topic, max_results: int, source: SourceConfig) -> list[dict[str, Any]]:
     mailto = os.getenv("CONTACT_EMAIL") or os.getenv("OPENALEX_EMAIL")
     search_queries = [topic_plain_query(topic)]
@@ -1114,6 +1149,8 @@ def fetch_openalex(topic: Topic, max_results: int, source: SourceConfig) -> list
             best_oa = work.get("best_oa_location") or {}
             primary_source = primary.get("source") or {}
             venue = str(primary_source.get("display_name") or "")
+            if source.strict_venue_match and not venue_matches_any_journal(venue, source.journals):
+                continue
             pdf_url = (
                 primary.get("pdf_url")
                 or best_oa.get("pdf_url")
@@ -1193,6 +1230,8 @@ def fetch_crossref(topic: Topic, max_results: int, source: SourceConfig) -> list
                     authors.append(name)
             subjects = [str(subject) for subject in item.get("subject", [])[:8]]
             venue = normalize_space(" ".join(str(part) for part in item.get("container-title", []) if part))
+            if source.strict_venue_match and not venue_matches_any_journal(venue, source.journals):
+                continue
             papers.append(
                 {
                     "id": f"crossref:{doi or slugify(title)}",
@@ -1540,9 +1579,101 @@ def matching_terms(text: str, terms: list[str]) -> list[str]:
     return [term for term in terms if term_matches(lowered, term)]
 
 
+NON_ENGLISH_SCRIPT_RE = re.compile(
+    r"[\u0370-\u03ff\u0400-\u04ff\u0590-\u05ff\u0600-\u06ff\u0750-\u077f"
+    r"\u0800-\u08ff\u0900-\u097f\u0e00-\u0e7f]"
+)
+ENGLISH_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "between",
+    "by",
+    "for",
+    "from",
+    "in",
+    "into",
+    "is",
+    "of",
+    "on",
+    "or",
+    "that",
+    "the",
+    "this",
+    "through",
+    "to",
+    "with",
+}
+ROMANCE_STOPWORDS = {
+    "de",
+    "del",
+    "des",
+    "du",
+    "el",
+    "en",
+    "et",
+    "la",
+    "las",
+    "le",
+    "les",
+    "los",
+    "para",
+    "por",
+    "une",
+    "un",
+    "una",
+}
+
+
+def language_filter_text(paper: dict[str, Any]) -> str:
+    return normalize_space(
+        " ".join(
+            [
+                str(paper.get("title") or ""),
+                str(paper.get("summary") or ""),
+                str(paper.get("venue") or ""),
+            ]
+        )
+    )
+
+
+def looks_english(text: str, min_stopword_hits: int = 2) -> bool:
+    sample = normalize_space(text)
+    if not sample:
+        return True
+
+    non_english_script_chars = len(NON_ENGLISH_SCRIPT_RE.findall(sample))
+    ascii_letters = len(re.findall(r"[A-Za-z]", sample))
+    latin_extended_letters = len(re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ]", sample))
+    if non_english_script_chars >= 8 and non_english_script_chars > ascii_letters:
+        return False
+    if latin_extended_letters >= 20 and ascii_letters / max(1, latin_extended_letters) < 0.80:
+        return False
+
+    tokens = re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ']+", sample.lower())
+    if len(tokens) < 6:
+        return True
+    english_hits = sum(1 for token in tokens if token in ENGLISH_STOPWORDS)
+    romance_hits = sum(1 for token in tokens if token in ROMANCE_STOPWORDS)
+    if romance_hits >= 4 and romance_hits > english_hits:
+        return False
+    return english_hits >= min_stopword_hits or ascii_letters / max(1, latin_extended_letters) >= 0.98
+
+
 def passes_relevance_filter(paper: dict[str, Any], relevance_filter: RelevanceFilter | None) -> tuple[bool, str]:
-    if not relevance_filter or (not relevance_filter.include_terms and not relevance_filter.exclude_terms):
+    if not relevance_filter:
         return True, ""
+    if not relevance_filter.require_english and not relevance_filter.include_terms and not relevance_filter.exclude_terms:
+        return True, ""
+
+    if relevance_filter.require_english and not looks_english(
+        language_filter_text(paper),
+        min_stopword_hits=relevance_filter.min_english_stopword_hits,
+    ):
+        return False, "非英文标题或摘要"
 
     text = paper_relevance_text(paper)
     include_hits = matching_terms(text, relevance_filter.include_terms)

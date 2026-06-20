@@ -25,6 +25,7 @@ from scripts.collect_papers import (
     is_retryable_arxiv_error,
     merge_with_retained_papers,
     merge_config,
+    looks_english,
     openalex_abstract_text,
     openalex_paper_from_work,
     parse_relevance_filter,
@@ -44,6 +45,7 @@ from scripts.collect_papers import (
     Topic,
     trim_papers_for_storage,
     uncached_conference_years,
+    venue_matches_any_journal,
 )
 
 
@@ -547,6 +549,43 @@ class RetentionTest(unittest.TestCase):
         }
 
         self.assertFalse(passes_relevance_filter(vla_paper, relevance_filter)[0])
+
+    def test_language_filter_rejects_non_english_titles(self) -> None:
+        relevance_filter = parse_relevance_filter(
+            {
+                "language_filter": {"require_english": True},
+                "include_terms": ["translation", "narrative"],
+                "exclude_terms": [],
+            }
+        )
+        arabic_paper = {
+            "title": "الترجمة والسرد في الرواية العربية",
+            "summary": "دراسة في الخطاب والترجمة الأدبية.",
+            "venue": "Journal of Arabic Studies",
+        }
+        spanish_paper = {
+            "title": "La traducción y la narrativa en la literatura contemporánea",
+            "summary": "Este artículo estudia la traducción, el discurso y la literatura.",
+            "venue": "Revista de Traducción",
+        }
+        english_paper = {
+            "title": "Conceptual Metaphor and Narrative Perspective in Chinese-English Literary Translation",
+            "summary": "This article examines translation, narrative voice, and cognitive linguistics in translated fiction.",
+            "venue": "Translation Studies",
+        }
+
+        self.assertFalse(looks_english(arabic_paper["title"]))
+        self.assertFalse(passes_relevance_filter(arabic_paper, relevance_filter)[0])
+        self.assertFalse(passes_relevance_filter(spanish_paper, relevance_filter)[0])
+        self.assertTrue(passes_relevance_filter(english_paper, relevance_filter)[0])
+
+    def test_strict_journal_matching_allows_watchlist_only(self) -> None:
+        journals = ["The Translator", "Cognitive Linguistics", "Target"]
+
+        self.assertTrue(venue_matches_any_journal("The Translator", journals))
+        self.assertTrue(venue_matches_any_journal("Target. International Journal of Translation Studies", journals))
+        self.assertTrue(venue_matches_any_journal("Cognitive Linguistics", journals))
+        self.assertFalse(venue_matches_any_journal("World Journal of English Language", journals))
 
     def test_llm_summary_skips_conference_and_title_only_by_default(self) -> None:
         self.assertFalse(should_summarize_paper_with_llm({"source_type": "conference", "summary": "DBLP 题录。"}))
