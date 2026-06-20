@@ -129,6 +129,17 @@ function scoreOf(paper) {
   return Number(paper.best_match?.score || 0);
 }
 
+function priorityRank(paper) {
+  const ranks = {
+    priority: 5,
+    method_core: 4,
+    inspiration: 3,
+    technology_related: 2,
+    language_case_review: 1,
+  };
+  return ranks[paper.reading_priority?.id] || 3;
+}
+
 function levelOf(paper) {
   return String(paper.best_match?.level || "low").toLowerCase();
 }
@@ -174,7 +185,12 @@ function matchesView(paper) {
 function filteredPapers() {
   return (activeData().papers || [])
     .filter((paper) => matchesBaseFilters(paper) && matchesView(paper))
-    .sort((a, b) => scoreOf(b) - scoreOf(a) || String(b.published || "").localeCompare(String(a.published || "")));
+    .sort(
+      (a, b) =>
+        priorityRank(b) - priorityRank(a) ||
+        scoreOf(b) - scoreOf(a) ||
+        String(b.published || "").localeCompare(String(a.published || "")),
+    );
 }
 
 function setText(parent, selector, text) {
@@ -195,10 +211,15 @@ function renderPaper(paper) {
   const best = paper.best_match || {};
   const summary = paper.chinese_summary || {};
   const badge = node.querySelector(".match-badge");
+  const priorityBadge = node.querySelector(".priority-badge");
   const level = levelOf(paper);
+  const priority = paper.reading_priority || {};
 
   badge.textContent = `${level} ${scoreOf(paper).toFixed(2)}`;
   badge.classList.add(level);
+  priorityBadge.textContent = priority.label || "启发参考";
+  priorityBadge.classList.add(priority.id || "inspiration");
+  if (priority.description) priorityBadge.title = priority.description;
 
   setText(node, ".paper-date", `发布 ${formatDate(paper.published)} · 收录 ${formatDate(collectionTime(paper))}`);
   setText(node, ".paper-source", paper.source || "paper");

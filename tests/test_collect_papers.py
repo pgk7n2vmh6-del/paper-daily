@@ -34,6 +34,7 @@ from scripts.collect_papers import (
     parse_dblp_html_toc,
     parse_dblp_hits,
     parse_sources,
+    paper_reading_priority,
     passes_relevance_filter,
     should_retry_arxiv_error,
     should_summarize_paper_with_llm,
@@ -586,6 +587,48 @@ class RetentionTest(unittest.TestCase):
         self.assertTrue(venue_matches_any_journal("Target. International Journal of Translation Studies", journals))
         self.assertTrue(venue_matches_any_journal("Cognitive Linguistics", journals))
         self.assertFalse(venue_matches_any_journal("World Journal of English Language", journals))
+
+    def test_reading_priority_marks_core_translation_and_method_papers(self) -> None:
+        core_paper = {
+            "title": "Rewriting and Patronage in Chinese-English Literary Translation",
+            "summary": "This article studies translation poetics and translator agency.",
+            "venue": "The Translator",
+        }
+        method_paper = {
+            "title": "Conceptual Metaphor and Narrative Perspective in English Fiction",
+            "summary": "This article develops a cognitive linguistics method for narrative analysis.",
+            "venue": "Cognitive Linguistics",
+        }
+
+        self.assertEqual(
+            paper_reading_priority(core_paper, {"topic_id": "rewriting_field_translation_studies"})["id"],
+            "priority",
+        )
+        self.assertEqual(
+            paper_reading_priority(method_paper, {"topic_id": "cognitive_translation_and_linguistics"})["id"],
+            "method_core",
+        )
+
+    def test_reading_priority_marks_non_chinese_language_cases_for_review(self) -> None:
+        language_case = {
+            "title": "Arabic Translation Pedagogy in Local Classrooms",
+            "summary": "This article reports a classroom case study.",
+            "venue": "World Journal of English Language",
+        }
+        transferable_case = {
+            "title": "Arabic Translation Pedagogy and Corpus Stylistics",
+            "summary": "This article proposes a framework for corpus stylistics and translation pedagogy.",
+            "venue": "Journal of Pragmatics",
+        }
+
+        self.assertEqual(
+            paper_reading_priority(language_case, {"topic_id": "narratology_literature_and_translation"})["id"],
+            "language_case_review",
+        )
+        self.assertEqual(
+            paper_reading_priority(transferable_case, {"topic_id": "corpus_discourse_stylistic_translation"})["id"],
+            "method_core",
+        )
 
     def test_llm_summary_skips_conference_and_title_only_by_default(self) -> None:
         self.assertFalse(should_summarize_paper_with_llm({"source_type": "conference", "summary": "DBLP 题录。"}))

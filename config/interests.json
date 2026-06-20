@@ -48,7 +48,7 @@
     },
     {
       "type": "openalex",
-      "name": "OpenAlex English Language and Literature Watchlist",
+      "name": "OpenAlex Linguistics and Literary Methods Watchlist",
       "strict_venue_match": true,
       "journals": [
         "Language and Literature",
@@ -57,6 +57,9 @@
         "Narrative",
         "Poetics Today",
         "Text & Talk",
+        "Journal of Pragmatics",
+        "Language & Communication",
+        "Language and Communication",
         "Discourse Studies",
         "Discourse & Society",
         "Journal of English Linguistics",
@@ -65,13 +68,14 @@
         "International Journal of Corpus Linguistics",
         "Corpus Linguistics and Linguistic Theory",
         "Cognitive Linguistics",
+        "Cognitive Linguistic Studies",
         "Review of Cognitive Linguistics",
         "Metaphor and Symbol"
       ]
     },
     {
       "type": "crossref",
-      "name": "Crossref English Language and Literature Watchlist",
+      "name": "Crossref Linguistics and Literary Methods Watchlist",
       "strict_venue_match": true,
       "journals": [
         "Language and Literature",
@@ -80,6 +84,9 @@
         "Narrative",
         "Poetics Today",
         "Text & Talk",
+        "Journal of Pragmatics",
+        "Language & Communication",
+        "Language and Communication",
         "Discourse Studies",
         "Discourse & Society",
         "Journal of English Linguistics",
@@ -88,6 +95,7 @@
         "International Journal of Corpus Linguistics",
         "Corpus Linguistics and Linguistic Theory",
         "Cognitive Linguistics",
+        "Cognitive Linguistic Studies",
         "Review of Cognitive Linguistics",
         "Metaphor and Symbol"
       ]
@@ -266,7 +274,7 @@
     {
       "id": "cognitive_translation_and_linguistics",
       "name": "认知取向翻译研究与认知语言学",
-      "description": "关注王峰老师相关方向中的认知翻译研究、认知语言学、体认语言学、概念隐喻、识解、框架语义、意义建构，以及这些概念如何转化为文学翻译和语料分析指标。也保留能启发研究问题的英语认知语言学论文。",
+      "description": "这是你的方法核心之一：关注王峰老师相关方向中的认知翻译研究、认知语言学、体认语言学、概念隐喻、识解、框架语义、意义建构，以及这些概念如何转化为文学翻译和语料分析指标。保留能启发研究问题、指标设计和语料解释的英语认知语言学论文。",
       "keywords": [
         "cognitive translation studies",
         "cognitive translatology",
@@ -294,7 +302,7 @@
     {
       "id": "narratology_literature_and_translation",
       "name": "叙事学、英语文学与翻译研究",
-      "description": "关注叙事视角、聚焦、声音、时间、人物塑造、叙事身份、重述、再叙事、叙事框架与翻译中的叙事重构；同时保留能帮助打开思路的英语文学、叙事理论和文学文体学研究。",
+      "description": "这是你的理论与方法核心之一：关注叙事视角、聚焦、声音、时间、人物塑造、叙事身份、重述、再叙事、叙事框架与翻译中的叙事重构；同时保留能帮助打开思路的英语文学、叙事理论和文学文体学研究。",
       "keywords": [
         "narratology and translation",
         "narrative translation",
@@ -320,7 +328,7 @@
     {
       "id": "corpus_discourse_stylistic_translation",
       "name": "语料库、话语与文体翻译研究",
-      "description": "关注语料库翻译研究、话语分析、批评话语分析、系统功能语言学、文体学、译者风格、关键词、搭配、语义韵、评价系统和文学翻译中的可操作指标；也保留能迁移到译文分析的英语语言文学方法论文。",
+      "description": "这是你的方法核心之一：关注语料库翻译研究、话语分析、批评话语分析、系统功能语言学、文体学、译者风格、关键词、搭配、语义韵、评价系统和文学翻译中的可操作指标；也保留能迁移到译文分析的英语语言文学方法论文。",
       "keywords": [
         "corpus-based translation studies",
         "corpus translation studies",

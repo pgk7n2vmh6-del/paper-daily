@@ -486,6 +486,47 @@ select:focus,
   color: var(--text);
 }
 
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.priority-badge.priority {
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.16);
+  color: var(--green);
+}
+
+.priority-badge.method_core {
+  border-color: rgba(45, 212, 191, 0.45);
+  background: rgba(45, 212, 191, 0.14);
+  color: var(--teal);
+}
+
+.priority-badge.technology_related {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.13);
+  color: var(--gold);
+}
+
+.priority-badge.language_case_review {
+  border-color: rgba(251, 113, 133, 0.42);
+  background: rgba(251, 113, 133, 0.12);
+  color: var(--coral);
+}
+
+.priority-badge.inspiration {
+  border-color: var(--line);
+  background: var(--button-bg);
+  color: var(--muted);
+}
+
 .paper-title {
   margin: 12px 0 8px;
   max-width: 1050px;

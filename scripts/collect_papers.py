@@ -45,6 +45,58 @@ DBLP_TRANSIENT_HTTP_CODES = {429, 502, 503, 504}
 DEFAULT_SOURCE_TYPES = ["arxiv", "openalex", "crossref"]
 FEED_NAMESPACES = {"atom": "http://www.w3.org/2005/Atom"}
 BROAD_RELEVANCE_TERMS = {"framework", "approach", "analysis", "assessment", "model", "evaluation"}
+CORE_TRANSLATION_VENUES = {
+    "target",
+    "perspectives",
+    "the translator",
+    "translation studies",
+    "meta",
+    "babel",
+    "translation spaces",
+    "across languages and cultures",
+    "the journal of specialised translation",
+    "journal of specialised translation",
+    "translation and interpreting studies",
+    "ttr",
+    "the interpreter and translator trainer",
+    "interpreter and translator trainer",
+}
+LANGUAGE_CASE_TERMS = {
+    "arabic",
+    "spanish",
+    "portuguese",
+    "french",
+    "german",
+    "italian",
+    "russian",
+    "turkish",
+    "persian",
+    "hindi",
+    "urdu",
+    "korean",
+    "japanese",
+}
+CHINA_RELATED_TERMS = {
+    "chinese",
+    "china",
+    "sinophone",
+    "chinese-english",
+    "english-chinese",
+    "chinese literature",
+}
+METHOD_GENERALITY_TERMS = {
+    "theory",
+    "framework",
+    "methodology",
+    "model",
+    "corpus",
+    "stylistics",
+    "pragmatics",
+    "narrative",
+    "narratology",
+    "cognitive linguistics",
+    "discourse",
+}
 
 
 @dataclass(frozen=True)
@@ -1127,6 +1179,68 @@ def venue_matches_any_journal(venue: str, journals: list[str] | None) -> bool:
     return any(venue_matches_journal(venue, journal) for journal in journals)
 
 
+def paper_has_any_term(paper: dict[str, Any], terms: set[str]) -> bool:
+    text = paper_relevance_text(paper).lower()
+    return any(term_matches(text, term) for term in terms)
+
+
+def paper_reading_priority(paper: dict[str, Any], best_match: dict[str, Any]) -> dict[str, str]:
+    topic_id = str(best_match.get("topic_id") or paper.get("seed_topic") or "")
+    venue = str(paper.get("venue") or "")
+    source = str(paper.get("source") or "").lower()
+    source_or_venue = f"{source} {normalized_venue_name(venue)}"
+    has_translation = paper_has_any_term(
+        paper,
+        {
+            "translation",
+            "translator",
+            "interpreting",
+            "literary translation",
+            "translation studies",
+            "rewriting",
+            "lefevere",
+            "bourdieu",
+        },
+    )
+    is_core_venue = any(venue_matches_journal(venue, journal) for journal in CORE_TRANSLATION_VENUES)
+    is_language_case = paper_has_any_term(paper, LANGUAGE_CASE_TERMS) and not paper_has_any_term(paper, CHINA_RELATED_TERMS)
+    has_general_method = paper_has_any_term(paper, METHOD_GENERALITY_TERMS)
+
+    if is_language_case and not is_core_venue and not has_general_method:
+        return {
+            "id": "language_case_review",
+            "label": "语种个案复核",
+            "description": "英文可读，但主要是非英汉语种个案；除非方法可迁移，否则不必优先看。",
+        }
+    if topic_id == "translation_technology_translator_studies":
+        return {
+            "id": "technology_related",
+            "label": "技术相关",
+            "description": "只在关注机器翻译、译后编辑或译者技术能力时优先阅读。",
+        }
+    if is_core_venue or ("core translation studies" in source_or_venue and has_translation):
+        return {
+            "id": "priority",
+            "label": "优先看",
+            "description": "核心翻译学来源或直接命中翻译研究主线。",
+        }
+    if topic_id in {
+        "cognitive_translation_and_linguistics",
+        "narratology_literature_and_translation",
+        "corpus_discourse_stylistic_translation",
+    }:
+        return {
+            "id": "method_core",
+            "label": "方法核心",
+            "description": "语言学、认知、叙事、文体或语料库方法，可迁移到文学翻译研究。",
+        }
+    return {
+        "id": "inspiration",
+        "label": "启发参考",
+        "description": "可作为开阔思路或补充背景的文献，先看摘要即可。",
+    }
+
+
 def fetch_openalex(topic: Topic, max_results: int, source: SourceConfig) -> list[dict[str, Any]]:
     mailto = os.getenv("CONTACT_EMAIL") or os.getenv("OPENALEX_EMAIL")
     search_queries = [topic_plain_query(topic)]
@@ -1862,8 +1976,10 @@ def build_llm_prompt(topic: Topic, paper: dict[str, Any], base_match: dict[str, 
 要求：
 1. 先识别论文真正解决的问题、核心机制、实验或系统证据，再翻译成自然中文。
 2. 不要夸大摘要中没有的信息；如果证据不足，请明确说明。
-3. 相关性判断要严格，说明它具体匹配哪些关键词、场景或系统瓶颈。
-4. 如果论文只是泛泛相关，请把 match_level 降为 medium 或 low，并在 why_relevant 里说明需要人工复核。
+3. 我的定位是“认知语言学与叙事学取向的文学翻译研究”：翻译研究是问题域，认知语言学、叙事学、语料库、话语和文体学是方法核心，不要把语言学方法误判为外围。
+4. 相关性判断要严格，说明它具体匹配哪些理论概念、方法路径、语料分析指标或论文论证环节。
+5. 如果论文只是非英汉语种个案，例如阿拉伯语、西语、葡语、法语等，且没有可迁移理论或方法，请把 match_level 降为 low，并在 why_relevant 里说明“语种个案复核”。
+6. 如果论文只是泛泛相关，请把 match_level 降为 medium 或 low，并在 why_relevant 里说明需要人工复核。
 
 我的研究方向：
 名称：{topic.name}
@@ -2332,6 +2448,7 @@ def collect(
             continue
         paper["matches"] = matches
         paper["best_match"] = best_match
+        paper["reading_priority"] = paper_reading_priority(paper, best_match)
         if in_backfill_window:
             paper["backfilled_from_recent_arxiv"] = True
             daily_outside_cutoff_count += 1
