@@ -197,6 +197,12 @@ function setText(parent, selector, text) {
   parent.querySelector(selector).textContent = text || "暂无";
 }
 
+function originalAbstractText(paper) {
+  const abstract = String(paper.summary || "").trim();
+  if (!abstract) return "来源未提供英文摘要。";
+  return abstract;
+}
+
 function safeFilename(paper) {
   const title = String(paper.title || paper.id || "paper")
     .replace(/[\\/:*?"<>|]+/g, " ")
@@ -228,7 +234,7 @@ function renderPaper(paper) {
   setText(node, ".summary-problem", summary.problem);
   setText(node, ".summary-method", summary.method);
   setText(node, ".summary-innovation", summary.innovation);
-  setText(node, ".summary-evidence", summary.evidence);
+  setText(node, ".summary-abstract", originalAbstractText(paper));
   setText(node, ".summary-limitations", summary.limitations);
   setText(node, ".summary-relevant", summary.why_relevant);
   setText(node, ".match-reason", `${best.topic_name || "未分类"}：${best.reason || ""}`);

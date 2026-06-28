@@ -587,6 +587,13 @@ select:focus,
   overflow-wrap: anywhere;
 }
 
+.summary-abstract {
+  max-height: 10.5em;
+  overflow: auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .paper-footer {
   display: flex;
   align-items: center;
